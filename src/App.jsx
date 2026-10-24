@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 
 const buttonStyle = {
-  padding: "10px 18px",
+  padding: "10px 15px",
   margin: "5px",
   border: "none",
   borderRadius: "10px",
   cursor: "pointer",
-  fontSize: "15px",
   background: "#4f46e5",
   color: "white",
+  fontWeight: "bold",
 };
 
 const cardStyle = {
@@ -26,6 +26,7 @@ export default function App() {
   const [summary, setSummary] = useState("");
   const [questions, setQuestions] = useState([]);
   const [flashcards, setFlashcards] = useState([]);
+
   const [dark, setDark] = useState(true);
 
   const [seconds, setSeconds] = useState(1500);
@@ -35,9 +36,22 @@ export default function App() {
     Number(localStorage.getItem("sessions")) || 0
   );
 
+  const [task, setTask] = useState("");
+
+  const [tasks, setTasks] = useState(
+    JSON.parse(localStorage.getItem("tasks")) || []
+  );
+
   useEffect(() => {
     localStorage.setItem("notes", notes);
   }, [notes]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "tasks",
+      JSON.stringify(tasks)
+    );
+  }, [tasks]);
 
   useEffect(() => {
     let timer;
@@ -54,7 +68,11 @@ export default function App() {
       const newSessions = sessions + 1;
 
       setSessions(newSessions);
-      localStorage.setItem("sessions", newSessions);
+
+      localStorage.setItem(
+        "sessions",
+        newSessions
+      );
 
       alert("🎉 Study Session Completed!");
     }
@@ -93,6 +111,35 @@ export default function App() {
     setFlashcards(cards);
   };
 
+  const addTask = () => {
+    if (!task.trim()) return;
+
+    setTasks([
+      ...tasks,
+      {
+        text: task,
+        completed: false,
+      },
+    ]);
+
+    setTask("");
+  };
+
+  const toggleTask = (index) => {
+    const updated = [...tasks];
+
+    updated[index].completed =
+      !updated[index].completed;
+
+    setTasks(updated);
+  };
+
+  const deleteTask = (index) => {
+    setTasks(
+      tasks.filter((_, i) => i !== index)
+    );
+  };
+
   const clearNotes = () => {
     setNotes("");
     setSummary("");
@@ -110,20 +157,22 @@ export default function App() {
 
     element.href = URL.createObjectURL(file);
     element.download = "study-notes.txt";
+
     document.body.appendChild(element);
     element.click();
   };
 
   const copySummary = () => {
     navigator.clipboard.writeText(summary);
-    alert("✅ Summary Copied");
+    alert("Summary copied!");
   };
 
   const copyQuiz = () => {
     navigator.clipboard.writeText(
       questions.join("\n")
     );
-    alert("✅ Quiz Copied");
+
+    alert("Quiz copied!");
   };
 
   const copyFlashcards = () => {
@@ -136,7 +185,7 @@ export default function App() {
 
     navigator.clipboard.writeText(content);
 
-    alert("✅ Flashcards Copied");
+    alert("Flashcards copied!");
   };
 
   const wordCount = notes.trim()
@@ -162,12 +211,12 @@ export default function App() {
     <div
       style={{
         minHeight: "100vh",
+        padding: "30px",
+        fontFamily: "Arial",
         background: dark
           ? "linear-gradient(to bottom,#020617,#0f172a)"
-          : "#f3f4f6",
+          : "#f1f5f9",
         color: dark ? "white" : "#111",
-        padding: "40px",
-        fontFamily: "Arial, sans-serif",
       }}
     >
       <div
@@ -179,7 +228,7 @@ export default function App() {
         <h1
           style={{
             textAlign: "center",
-            fontSize: "60px",
+            fontSize: "50px",
           }}
         >
           📚 Study Assistant Pro
@@ -213,12 +262,12 @@ export default function App() {
         <br />
 
         <textarea
-          rows={12}
+          rows="10"
           value={notes}
           onChange={(e) =>
             setNotes(e.target.value)
           }
-          placeholder="Paste your notes here..."
+          placeholder="Paste your study notes here..."
           style={{
             width: "100%",
             padding: "15px",
@@ -264,11 +313,85 @@ export default function App() {
         </div>
 
         <div style={cardStyle}>
+          <h2>✅ Study Tasks</h2>
+
+          <input
+            value={task}
+            onChange={(e) =>
+              setTask(e.target.value)
+            }
+            placeholder="Add a study task..."
+            style={{
+              width: "70%",
+              padding: "10px",
+              borderRadius: "10px",
+              marginRight: "10px",
+            }}
+          />
+
+          <button
+            onClick={addTask}
+            style={buttonStyle}
+          >
+            Add
+          </button>
+
+          <br />
+          <br />
+
+          {tasks.map((t, index) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems: "center",
+                marginBottom: "10px",
+              }}
+            >
+              <span
+                style={{
+                  textDecoration:
+                    t.completed
+                      ? "line-through"
+                      : "none",
+                }}
+              >
+                {t.text}
+              </span>
+
+              <div>
+                <button
+                  onClick={() =>
+                    toggleTask(index)
+                  }
+                  style={buttonStyle}
+                >
+                  ✔
+                </button>
+
+                <button
+                  onClick={() =>
+                    deleteTask(index)
+                  }
+                  style={buttonStyle}
+                >
+                  🗑
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={cardStyle}>
           <h2>📊 Statistics</h2>
 
           <p>Words: {wordCount}</p>
           <p>Characters: {characterCount}</p>
-          <p>Reading Time: {readingTime} min</p>
+          <p>
+            Reading Time: {readingTime} min
+          </p>
         </div>
 
         <br />
@@ -320,8 +443,8 @@ export default function App() {
           {questions.length === 0 ? (
             <p>No questions yet.</p>
           ) : (
-            questions.map((q, index) => (
-              <p key={index}>{q}</p>
+            questions.map((q, i) => (
+              <p key={i}>{q}</p>
             ))
           )}
         </div>
@@ -336,25 +459,24 @@ export default function App() {
             📋 Copy Flashcards
           </button>
 
-          {flashcards.length === 0 ? (
-            <p>No flashcards yet.</p>
-          ) : (
-            flashcards.map((card, index) => (
-              <div
-                key={index}
-                style={{
-                  border:
-                    "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: "10px",
-                  padding: "12px",
-                  marginBottom: "10px",
-                }}
-              >
-                <strong>{card.question}</strong>
-                <p>{card.answer}</p>
-              </div>
-            ))
-          )}
+          {flashcards.map((card, i) => (
+            <div
+              key={i}
+              style={{
+                border:
+                  "1px solid rgba(255,255,255,0.2)",
+                borderRadius: "10px",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            >
+              <strong>
+                {card.question}
+              </strong>
+
+              <p>{card.answer}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
