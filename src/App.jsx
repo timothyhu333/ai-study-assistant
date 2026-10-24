@@ -2,19 +2,20 @@ import { useState, useEffect } from "react";
 
 const buttonStyle = {
   padding: "10px 18px",
-  marginRight: "10px",
-  marginBottom: "10px",
+  margin: "5px",
   border: "none",
-  borderRadius: "8px",
+  borderRadius: "10px",
   cursor: "pointer",
   fontSize: "15px",
+  background: "#4f46e5",
+  color: "white",
 };
 
 const cardStyle = {
   marginTop: "20px",
   padding: "20px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.05)",
+  borderRadius: "15px",
+  background: "rgba(255,255,255,0.08)",
 };
 
 export default function App() {
@@ -70,6 +71,43 @@ export default function App() {
     localStorage.removeItem("notes");
   };
 
+  const downloadNotes = () => {
+    const element = document.createElement("a");
+
+    const file = new Blob([notes], {
+      type: "text/plain",
+    });
+
+    element.href = URL.createObjectURL(file);
+    element.download = "study-notes.txt";
+    document.body.appendChild(element);
+    element.click();
+  };
+
+  const copySummary = () => {
+    navigator.clipboard.writeText(summary);
+    alert("Summary copied!");
+  };
+
+  const copyQuiz = () => {
+    navigator.clipboard.writeText(
+      questions.join("\n")
+    );
+    alert("Quiz copied!");
+  };
+
+  const copyFlashcards = () => {
+    const content = flashcards
+      .map(
+        (card) =>
+          `${card.question}\n${card.answer}`
+      )
+      .join("\n\n");
+
+    navigator.clipboard.writeText(content);
+    alert("Flashcards copied!");
+  };
+
   const wordCount = notes.trim()
     ? notes.trim().split(/\s+/).length
     : 0;
@@ -85,47 +123,67 @@ export default function App() {
     <div
       style={{
         minHeight: "100vh",
-        background: dark ? "#111827" : "#f3f4f6",
-        color: dark ? "#ffffff" : "#111827",
+        background: dark
+          ? "linear-gradient(to bottom,#020617,#0f172a)"
+          : "#f3f4f6",
+        color: dark ? "white" : "#111",
         padding: "40px",
         fontFamily: "Arial, sans-serif",
       }}
     >
       <div
         style={{
-          maxWidth: "900px",
+          maxWidth: "1000px",
           margin: "0 auto",
         }}
       >
-        <h1>📚 AI Study Assistant</h1>
-
-        <button
-          onClick={() => setDark(!dark)}
-          style={buttonStyle}
+        <h1
+          style={{
+            textAlign: "center",
+            fontSize: "60px",
+          }}
         >
-          {dark ? "☀ Light Mode" : "🌙 Dark Mode"}
-        </button>
+          📚 AI Study Assistant
+        </h1>
 
-        <button
-          onClick={clearNotes}
-          style={buttonStyle}
-        >
-          🗑 Clear Notes
-        </button>
+        <div style={{ textAlign: "center" }}>
+          <button
+            onClick={() => setDark(!dark)}
+            style={buttonStyle}
+          >
+            {dark
+              ? "☀ Light Mode"
+              : "🌙 Dark Mode"}
+          </button>
 
-        <br />
+          <button
+            onClick={clearNotes}
+            style={buttonStyle}
+          >
+            🗑 Clear Notes
+          </button>
+
+          <button
+            onClick={downloadNotes}
+            style={buttonStyle}
+          >
+            📄 Download Notes
+          </button>
+        </div>
+
         <br />
 
         <textarea
           rows={12}
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) =>
+            setNotes(e.target.value)
+          }
           placeholder="Paste your study notes here..."
           style={{
             width: "100%",
             padding: "15px",
-            borderRadius: "12px",
-            border: "1px solid #555",
+            borderRadius: "15px",
             fontSize: "16px",
           }}
         />
@@ -157,26 +215,39 @@ export default function App() {
         <div style={cardStyle}>
           <h2>📊 Statistics</h2>
 
+          <p>Words: {wordCount}</p>
+
           <p>
-            <strong>Words:</strong> {wordCount}
+            Characters: {characterCount}
           </p>
 
           <p>
-            <strong>Characters:</strong> {characterCount}
-          </p>
-
-          <p>
-            <strong>Reading Time:</strong> {readingTime} min
+            Reading Time: {readingTime} min
           </p>
         </div>
 
         <div style={cardStyle}>
           <h2>📝 Summary</h2>
+
+          <button
+            onClick={copySummary}
+            style={buttonStyle}
+          >
+            📋 Copy Summary
+          </button>
+
           <p>{summary}</p>
         </div>
 
         <div style={cardStyle}>
           <h2>❓ Quiz Questions</h2>
+
+          <button
+            onClick={copyQuiz}
+            style={buttonStyle}
+          >
+            📋 Copy Quiz
+          </button>
 
           {questions.length === 0 ? (
             <p>No questions yet.</p>
@@ -190,6 +261,13 @@ export default function App() {
         <div style={cardStyle}>
           <h2>🎴 Flashcards</h2>
 
+          <button
+            onClick={copyFlashcards}
+            style={buttonStyle}
+          >
+            📋 Copy Flashcards
+          </button>
+
           {flashcards.length === 0 ? (
             <p>No flashcards yet.</p>
           ) : (
@@ -197,13 +275,17 @@ export default function App() {
               <div
                 key={index}
                 style={{
-                  border: "1px solid #666",
+                  border:
+                    "1px solid rgba(255,255,255,0.2)",
                   borderRadius: "10px",
                   padding: "12px",
                   marginBottom: "10px",
                 }}
               >
-                <strong>{card.question}</strong>
+                <strong>
+                  {card.question}
+                </strong>
+
                 <p>{card.answer}</p>
               </div>
             ))
