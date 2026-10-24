@@ -28,9 +28,39 @@ export default function App() {
   const [flashcards, setFlashcards] = useState([]);
   const [dark, setDark] = useState(true);
 
+  const [seconds, setSeconds] = useState(1500);
+  const [running, setRunning] = useState(false);
+
+  const [sessions, setSessions] = useState(
+    Number(localStorage.getItem("sessions")) || 0
+  );
+
   useEffect(() => {
     localStorage.setItem("notes", notes);
   }, [notes]);
+
+  useEffect(() => {
+    let timer;
+
+    if (running && seconds > 0) {
+      timer = setInterval(() => {
+        setSeconds((prev) => prev - 1);
+      }, 1000);
+    }
+
+    if (seconds === 0) {
+      setRunning(false);
+
+      const newSessions = sessions + 1;
+
+      setSessions(newSessions);
+      localStorage.setItem("sessions", newSessions);
+
+      alert("🎉 Study Session Completed!");
+    }
+
+    return () => clearInterval(timer);
+  }, [running, seconds, sessions]);
 
   const summarize = () => {
     const words = notes.split(" ");
@@ -86,14 +116,14 @@ export default function App() {
 
   const copySummary = () => {
     navigator.clipboard.writeText(summary);
-    alert("Summary copied!");
+    alert("✅ Summary Copied");
   };
 
   const copyQuiz = () => {
     navigator.clipboard.writeText(
       questions.join("\n")
     );
-    alert("Quiz copied!");
+    alert("✅ Quiz Copied");
   };
 
   const copyFlashcards = () => {
@@ -105,7 +135,8 @@ export default function App() {
       .join("\n\n");
 
     navigator.clipboard.writeText(content);
-    alert("Flashcards copied!");
+
+    alert("✅ Flashcards Copied");
   };
 
   const wordCount = notes.trim()
@@ -118,6 +149,14 @@ export default function App() {
     1,
     Math.ceil(wordCount / 200)
   );
+
+  const minutes = String(
+    Math.floor(seconds / 60)
+  ).padStart(2, "0");
+
+  const secs = String(
+    seconds % 60
+  ).padStart(2, "0");
 
   return (
     <div
@@ -143,7 +182,7 @@ export default function App() {
             fontSize: "60px",
           }}
         >
-          📚 AI Study Assistant
+          📚 Study Assistant Pro
         </h1>
 
         <div style={{ textAlign: "center" }}>
@@ -179,7 +218,7 @@ export default function App() {
           onChange={(e) =>
             setNotes(e.target.value)
           }
-          placeholder="Paste your study notes here..."
+          placeholder="Paste your notes here..."
           style={{
             width: "100%",
             padding: "15px",
@@ -188,7 +227,50 @@ export default function App() {
           }}
         />
 
-        <br />
+        <div style={cardStyle}>
+          <h2>⏱ Study Timer</h2>
+
+          <h1>
+            {minutes}:{secs}
+          </h1>
+
+          <button
+            onClick={() => setRunning(true)}
+            style={buttonStyle}
+          >
+            ▶ Start
+          </button>
+
+          <button
+            onClick={() => setRunning(false)}
+            style={buttonStyle}
+          >
+            ⏸ Pause
+          </button>
+
+          <button
+            onClick={() => {
+              setRunning(false);
+              setSeconds(1500);
+            }}
+            style={buttonStyle}
+          >
+            🔄 Reset
+          </button>
+
+          <p>
+            Completed Sessions: {sessions}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h2>📊 Statistics</h2>
+
+          <p>Words: {wordCount}</p>
+          <p>Characters: {characterCount}</p>
+          <p>Reading Time: {readingTime} min</p>
+        </div>
+
         <br />
 
         <button
@@ -211,20 +293,6 @@ export default function App() {
         >
           🎴 Flashcards
         </button>
-
-        <div style={cardStyle}>
-          <h2>📊 Statistics</h2>
-
-          <p>Words: {wordCount}</p>
-
-          <p>
-            Characters: {characterCount}
-          </p>
-
-          <p>
-            Reading Time: {readingTime} min
-          </p>
-        </div>
 
         <div style={cardStyle}>
           <h2>📝 Summary</h2>
@@ -282,10 +350,7 @@ export default function App() {
                   marginBottom: "10px",
                 }}
               >
-                <strong>
-                  {card.question}
-                </strong>
-
+                <strong>{card.question}</strong>
                 <p>{card.answer}</p>
               </div>
             ))
