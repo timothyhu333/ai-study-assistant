@@ -1,5 +1,22 @@
 import { useState, useEffect } from "react";
 
+const buttonStyle = {
+  padding: "10px 18px",
+  marginRight: "10px",
+  marginBottom: "10px",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "15px",
+};
+
+const cardStyle = {
+  marginTop: "20px",
+  padding: "20px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.05)",
+};
+
 export default function App() {
   const [notes, setNotes] = useState(
     localStorage.getItem("notes") || ""
@@ -45,6 +62,25 @@ export default function App() {
     setFlashcards(cards);
   };
 
+  const clearNotes = () => {
+    setNotes("");
+    setSummary("");
+    setQuestions([]);
+    setFlashcards([]);
+    localStorage.removeItem("notes");
+  };
+
+  const wordCount = notes.trim()
+    ? notes.trim().split(/\s+/).length
+    : 0;
+
+  const characterCount = notes.length;
+
+  const readingTime = Math.max(
+    1,
+    Math.ceil(wordCount / 200)
+  );
+
   return (
     <div
       style={{
@@ -70,6 +106,13 @@ export default function App() {
           {dark ? "☀ Light Mode" : "🌙 Dark Mode"}
         </button>
 
+        <button
+          onClick={clearNotes}
+          style={buttonStyle}
+        >
+          🗑 Clear Notes
+        </button>
+
         <br />
         <br />
 
@@ -77,7 +120,7 @@ export default function App() {
           rows={12}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Paste your notes here..."
+          placeholder="Paste your study notes here..."
           style={{
             width: "100%",
             padding: "15px",
@@ -110,6 +153,22 @@ export default function App() {
         >
           🎴 Flashcards
         </button>
+
+        <div style={cardStyle}>
+          <h2>📊 Statistics</h2>
+
+          <p>
+            <strong>Words:</strong> {wordCount}
+          </p>
+
+          <p>
+            <strong>Characters:</strong> {characterCount}
+          </p>
+
+          <p>
+            <strong>Reading Time:</strong> {readingTime} min
+          </p>
+        </div>
 
         <div style={cardStyle}>
           <h2>📝 Summary</h2>
@@ -154,20 +213,3 @@ export default function App() {
     </div>
   );
 }
-
-const buttonStyle = {
-  padding: "10px 18px",
-  marginRight: "10px",
-  marginBottom: "10px",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontSize: "15px",
-};
-
-const cardStyle = {
-  marginTop: "20px",
-  padding: "20px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.05)",
-};
