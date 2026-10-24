@@ -42,6 +42,25 @@ export default function App() {
     JSON.parse(localStorage.getItem("tasks")) || []
   );
 
+  const [editingIndex, setEditingIndex] =
+    useState(null);
+
+  const [editText, setEditText] =
+    useState("");
+
+  const [streak, setStreak] = useState(
+    Number(localStorage.getItem("streak")) || 1
+  );
+
+  const [bestStreak, setBestStreak] =
+    useState(
+      Number(
+        localStorage.getItem("bestStreak")
+      ) || 1
+    );
+
+  const dailyGoal = 1000;
+
   useEffect(() => {
     localStorage.setItem("notes", notes);
   }, [notes]);
@@ -80,9 +99,66 @@ export default function App() {
     return () => clearInterval(timer);
   }, [running, seconds, sessions]);
 
+  useEffect(() => {
+    const today = new Date().toDateString();
+
+    const lastVisit =
+      localStorage.getItem("lastVisit");
+
+    if (!lastVisit) {
+      localStorage.setItem(
+        "lastVisit",
+        today
+      );
+      return;
+    }
+
+    if (lastVisit !== today) {
+      const yesterday = new Date();
+
+      yesterday.setDate(
+        yesterday.getDate() - 1
+      );
+
+      let currentStreak = streak;
+
+      if (
+        lastVisit === yesterday.toDateString()
+      ) {
+        currentStreak++;
+      } else {
+        currentStreak = 1;
+      }
+
+      setStreak(currentStreak);
+
+      localStorage.setItem(
+        "streak",
+        currentStreak
+      );
+
+      if (currentStreak > bestStreak) {
+        setBestStreak(currentStreak);
+
+        localStorage.setItem(
+          "bestStreak",
+          currentStreak
+        );
+      }
+
+      localStorage.setItem(
+        "lastVisit",
+        today
+      );
+    }
+  }, []);
+
   const summarize = () => {
     const words = notes.split(" ");
-    setSummary(words.slice(0, 50).join(" ") + "...");
+
+    setSummary(
+      words.slice(0, 50).join(" ") + "..."
+    );
   };
 
   const generateQuiz = () => {
@@ -93,7 +169,8 @@ export default function App() {
 
     setQuestions(
       sentences.map(
-        (s, i) => `${i + 1}. Explain: ${s.trim()}?`
+        (s, i) =>
+          `${i + 1}. Explain: ${s.trim()}?`
       )
     );
   };
@@ -140,52 +217,45 @@ export default function App() {
     );
   };
 
+  const startEditTask = (index) => {
+    setEditingIndex(index);
+    setEditText(tasks[index].text);
+  };
+
+  const saveEditedTask = () => {
+    const updated = [...tasks];
+
+    updated[editingIndex].text = editText;
+
+    setTasks(updated);
+
+    setEditingIndex(null);
+    setEditText("");
+  };
+
   const clearNotes = () => {
     setNotes("");
     setSummary("");
     setQuestions([]);
     setFlashcards([]);
-    localStorage.removeItem("notes");
   };
 
   const downloadNotes = () => {
-    const element = document.createElement("a");
+    const element =
+      document.createElement("a");
 
     const file = new Blob([notes], {
       type: "text/plain",
     });
 
-    element.href = URL.createObjectURL(file);
-    element.download = "study-notes.txt";
+    element.href =
+      URL.createObjectURL(file);
+
+    element.download =
+      "study-notes.txt";
 
     document.body.appendChild(element);
     element.click();
-  };
-
-  const copySummary = () => {
-    navigator.clipboard.writeText(summary);
-    alert("Summary copied!");
-  };
-
-  const copyQuiz = () => {
-    navigator.clipboard.writeText(
-      questions.join("\n")
-    );
-
-    alert("Quiz copied!");
-  };
-
-  const copyFlashcards = () => {
-    const content = flashcards
-      .map(
-        (card) =>
-          `${card.question}\n${card.answer}`
-      )
-      .join("\n\n");
-
-    navigator.clipboard.writeText(content);
-
-    alert("Flashcards copied!");
   };
 
   const wordCount = notes.trim()
@@ -199,6 +269,17 @@ export default function App() {
     Math.ceil(wordCount / 200)
   );
 
+  const completedTasks =
+    tasks.filter((t) => t.completed)
+      .length;
+
+  const goalProgress = Math.min(
+    100,
+    Math.round(
+      (wordCount / dailyGoal) * 100
+    )
+  );
+
   const minutes = String(
     Math.floor(seconds / 60)
   ).padStart(2, "0");
@@ -206,6 +287,43 @@ export default function App() {
   const secs = String(
     seconds % 60
   ).padStart(2, "0");
+
+  const achievements = [];
+
+  if (sessions >= 1)
+    achievements.push(
+      "🏅 First Study Session"
+    );
+
+  if (sessions >= 10)
+    achievements.push(
+      "🏅 10 Study Sessions"
+    );
+
+  if (completedTasks >= 1)
+    achievements.push(
+      "✅ First Task Completed"
+    );
+
+  if (completedTasks >= 10)
+    achievements.push(
+      "✅ Task Champion"
+    );
+
+  if (wordCount >= 500)
+    achievements.push(
+      "📚 500 Words Written"
+    );
+
+  if (wordCount >= 1000)
+    achievements.push(
+      "📚 1000 Words Written"
+    );
+
+  if (streak >= 3)
+    achievements.push(
+      "🔥 3 Day Streak"
+    );
 
   return (
     <div
@@ -225,41 +343,32 @@ export default function App() {
           margin: "0 auto",
         }}
       >
-        <h1
-          style={{
-            textAlign: "center",
-            fontSize: "50px",
-          }}
+        <h1>📚 Study Assistant Ultimate</h1>
+
+        <button
+          style={buttonStyle}
+          onClick={() =>
+            setDark(!dark)
+          }
         >
-          📚 Study Assistant Pro
-        </h1>
+          {dark
+            ? "☀ Light"
+            : "🌙 Dark"}
+        </button>
 
-        <div style={{ textAlign: "center" }}>
-          <button
-            onClick={() => setDark(!dark)}
-            style={buttonStyle}
-          >
-            {dark
-              ? "☀ Light Mode"
-              : "🌙 Dark Mode"}
-          </button>
+        <button
+          style={buttonStyle}
+          onClick={downloadNotes}
+        >
+          📄 Download Notes
+        </button>
 
-          <button
-            onClick={clearNotes}
-            style={buttonStyle}
-          >
-            🗑 Clear Notes
-          </button>
-
-          <button
-            onClick={downloadNotes}
-            style={buttonStyle}
-          >
-            📄 Download Notes
-          </button>
-        </div>
-
-        <br />
+        <button
+          style={buttonStyle}
+          onClick={clearNotes}
+        >
+          🗑 Clear Notes
+        </button>
 
         <textarea
           rows="10"
@@ -267,14 +376,68 @@ export default function App() {
           onChange={(e) =>
             setNotes(e.target.value)
           }
-          placeholder="Paste your study notes here..."
+          placeholder="Paste notes..."
           style={{
             width: "100%",
+            marginTop: "20px",
             padding: "15px",
-            borderRadius: "15px",
-            fontSize: "16px",
+            borderRadius: "10px",
           }}
         />
+
+        <div style={cardStyle}>
+          <h2>📊 Dashboard</h2>
+
+          <p>📚 Words: {wordCount}</p>
+          <p>
+            ✅ Completed Tasks:{" "}
+            {completedTasks}
+          </p>
+          <p>
+            ⏱ Sessions: {sessions}
+          </p>
+          <p>
+            🔥 Streak: {streak}
+          </p>
+          <p>
+            🏆 Best Streak:{" "}
+            {bestStreak}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h2>🎯 Daily Goal</h2>
+
+          <div
+            style={{
+              width: "100%",
+              background: "#333",
+              height: "25px",
+              borderRadius: "10px",
+            }}
+          >
+            <div
+              style={{
+                width: `${goalProgress}%`,
+                background: "#22c55e",
+                height: "100%",
+                borderRadius: "10px",
+              }}
+            />
+          </div>
+
+          <p>
+            {goalProgress}% Complete
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h2>🏆 Achievements</h2>
+
+          {achievements.map((a, i) => (
+            <p key={i}>{a}</p>
+          ))}
+        </div>
 
         <div style={cardStyle}>
           <h2>⏱ Study Timer</h2>
@@ -284,32 +447,32 @@ export default function App() {
           </h1>
 
           <button
-            onClick={() => setRunning(true)}
             style={buttonStyle}
+            onClick={() =>
+              setRunning(true)
+            }
           >
             ▶ Start
           </button>
 
           <button
-            onClick={() => setRunning(false)}
             style={buttonStyle}
+            onClick={() =>
+              setRunning(false)
+            }
           >
             ⏸ Pause
           </button>
 
           <button
+            style={buttonStyle}
             onClick={() => {
               setRunning(false);
               setSeconds(1500);
             }}
-            style={buttonStyle}
           >
             🔄 Reset
           </button>
-
-          <p>
-            Completed Sessions: {sessions}
-          </p>
         </div>
 
         <div style={cardStyle}>
@@ -320,161 +483,85 @@ export default function App() {
             onChange={(e) =>
               setTask(e.target.value)
             }
-            placeholder="Add a study task..."
-            style={{
-              width: "70%",
-              padding: "10px",
-              borderRadius: "10px",
-              marginRight: "10px",
-            }}
+            placeholder="Add task..."
           />
 
           <button
-            onClick={addTask}
             style={buttonStyle}
+            onClick={addTask}
           >
             Add
           </button>
 
-          <br />
-          <br />
-
           {tasks.map((t, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems: "center",
-                marginBottom: "10px",
-              }}
-            >
-              <span
-                style={{
-                  textDecoration:
-                    t.completed
-                      ? "line-through"
-                      : "none",
-                }}
-              >
-                {t.text}
-              </span>
+            <div key={index}>
+              {editingIndex === index ? (
+                <>
+                  <input
+                    value={editText}
+                    onChange={(e) =>
+                      setEditText(
+                        e.target.value
+                      )
+                    }
+                  />
 
-              <div>
-                <button
-                  onClick={() =>
-                    toggleTask(index)
-                  }
-                  style={buttonStyle}
-                >
-                  ✔
-                </button>
+                  <button
+                    style={buttonStyle}
+                    onClick={
+                      saveEditedTask
+                    }
+                  >
+                    💾
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span
+                    style={{
+                      textDecoration:
+                        t.completed
+                          ? "line-through"
+                          : "none",
+                    }}
+                  >
+                    {t.text}
+                  </span>
 
-                <button
-                  onClick={() =>
-                    deleteTask(index)
-                  }
-                  style={buttonStyle}
-                >
-                  🗑
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+                  <button
+                    style={buttonStyle}
+                    onClick={() =>
+                      toggleTask(
+                        index
+                      )
+                    }
+                  >
+                    ✔
+                  </button>
 
-        <div style={cardStyle}>
-          <h2>📊 Statistics</h2>
+                  <button
+                    style={buttonStyle}
+                    onClick={() =>
+                      startEditTask(
+                        index
+                      )
+                    }
+                  >
+                    ✏️
+                  </button>
 
-          <p>Words: {wordCount}</p>
-          <p>Characters: {characterCount}</p>
-          <p>
-            Reading Time: {readingTime} min
-          </p>
-        </div>
-
-        <br />
-
-        <button
-          onClick={summarize}
-          style={buttonStyle}
-        >
-          📝 Summarize
-        </button>
-
-        <button
-          onClick={generateQuiz}
-          style={buttonStyle}
-        >
-          ❓ Generate Quiz
-        </button>
-
-        <button
-          onClick={generateFlashcards}
-          style={buttonStyle}
-        >
-          🎴 Flashcards
-        </button>
-
-        <div style={cardStyle}>
-          <h2>📝 Summary</h2>
-
-          <button
-            onClick={copySummary}
-            style={buttonStyle}
-          >
-            📋 Copy Summary
-          </button>
-
-          <p>{summary}</p>
-        </div>
-
-        <div style={cardStyle}>
-          <h2>❓ Quiz Questions</h2>
-
-          <button
-            onClick={copyQuiz}
-            style={buttonStyle}
-          >
-            📋 Copy Quiz
-          </button>
-
-          {questions.length === 0 ? (
-            <p>No questions yet.</p>
-          ) : (
-            questions.map((q, i) => (
-              <p key={i}>{q}</p>
-            ))
-          )}
-        </div>
-
-        <div style={cardStyle}>
-          <h2>🎴 Flashcards</h2>
-
-          <button
-            onClick={copyFlashcards}
-            style={buttonStyle}
-          >
-            📋 Copy Flashcards
-          </button>
-
-          {flashcards.map((card, i) => (
-            <div
-              key={i}
-              style={{
-                border:
-                  "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "10px",
-                padding: "10px",
-                marginBottom: "10px",
-              }}
-            >
-              <strong>
-                {card.question}
-              </strong>
-
-              <p>{card.answer}</p>
+                  <button
+                    style={buttonStyle}
+                    onClick={() =>
+                      deleteTask(
+                        index
+                      )
+                    }
+                  >
+                    🗑
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
